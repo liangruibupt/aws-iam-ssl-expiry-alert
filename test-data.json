@@ -1,0 +1,12 @@
+{
+  "Items": [
+    {
+      "hostname": "aws.amazon.com",
+      "buffer_days": 10
+    },
+    {
+      "hostname": "github.com",
+      "buffer_days": 10
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: ssl-expiry-alert # NOTE: update this with your service name
+
+plugins:
+  - serverless-plugin-aws-cn-principal
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'} # Set the default stage used. Default is dev
+  tableName: ${self:provider.stage}-SSLCertInfo
+  runtime: python3.7
+  memorySize: 128
+  timeout: 15
+  region: cn-north-1
+  endpointType: REGIONAL
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+        - "sns:Publish"
+        - "sns:Subscribe"
+        - "sns:ConfirmSubscription"
+        - "dynamodb:PutItem"
+        - "dynamodb:DeleteItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:GetItem"
+        - "dynamodb:ListTables"
+        - "dynamodb:Scan"
+        - "dynamodb:Query"
+        - "dynamodb:DescribeTable"
+      Resource: "*"
+
+# you can add packaging information here
+#package:
+#  include:
+#    - include-me.py
+#    - include-me-dir/**
+#  exclude:
+#    - exclude-me.py
+#    - exclude-me-dir/**
+
+# you can add function here
+functions:
+  ssl-expiry-alert:
+    handler: ssl-expiry-alert.lambda_handler
+    environment:
+      DYNAMODB_TABLE: ${self:provider.tableName}
+      SNS_TOPIC_ARN: arn:aws-cn:sns:cn-north-1:xxxxxx:NotifyMe
+    events:
+      - schedule: rate(10 minutes)
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    SSLCertInfo:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.tableName}
+        AttributeDefinitions:
+          - AttributeName: hostname
+            AttributeType: S
+          - AttributeName: buffer_days
+            AttributeType: N
+        KeySchema:
+          - AttributeName: hostname
+            KeyType: HASH
+          - AttributeName: buffer_days
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+    # CloudWatcherTriigerRule:
+    #   Type: AWS::Events::Rule
+    #   Properties:
+    #     ScheduleExpression: rate(10 minutes)
+    #     State: "ENABLED"
+    #     Targets:
+    #       -
+    #         Arn: 
+    #         Fn::GetAtt: 
+    #           - "ssl-expiry-alert"
+    #           - "Arn"
+    #         Id: "ToSslExpiryAlert"
+    # PermissionForEventsToInvokeLambda: 
+    #   Type: AWS::Lambda::Permission
+    #   Properties: 
+    #   FunctionName: 
+    #     Ref: "ssl-expiry-alert"
+    #     Action: "lambda:InvokeFunction"
+    #     Principal: "events.amazonaws.com"
+    #     SourceArn: 
+    #       Fn::GetAtt: 
+    #         - "CloudWatcherTriigerRule"
+    #         - "Arn"
+
