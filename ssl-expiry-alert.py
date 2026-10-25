@@ -56,6 +56,8 @@ def ssl_expiry_datetime(hostname):
     ssl_date_fmt = r'%b %d %H:%M:%S %Y %Z'
 
     context = ssl.create_default_context()
+    # Disallow insecure TLSv1 / TLSv1.1; certificate verification stays as before
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     conn = context.wrap_socket(
         socket.socket(socket.AF_INET),
         server_hostname=hostname,
